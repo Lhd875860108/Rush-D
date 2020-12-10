@@ -1,0 +1,155 @@
+import requests 
+import bs4 as bs 
+from time import sleep
+from time import time
+from random import randint
+import pandas as pd 
+
+#text content
+titles = []
+first_ps = []
+#
+authors = []
+reply_lps = []
+#reply number
+reply_qs = []
+#floor in website
+data_floors =[]
+#creat time
+found_times = []
+#last reply time
+ltimes = []
+#fields for subwebsite
+fields = []
+#total 4 numbers in 10
+
+intervals = [str(i*50) for i in range(0,75)] 
+
+for interval in intervals:
+   
+    source = requests.get('https://tieba.baidu.com/f?kw=%E5%AE%B6%E6%9A%B4&ie=utf-8&pn=' + interval)
+
+    sleep(randint(1,74))
+    
+    page_html = bs.BeautifulSoup(source.content, 'html.parser')
+    
+    lis_containers = page_html.find_all('li', class_ = 'j_thread_list clearfix') 
+    
+    for container in lis_containers:
+         
+        try:
+            for title in container.find_all('a', class_ = 'j_th_tit'): 
+                titles.append(title.text.strip()) 
+        except:
+            title = "no_title"
+            titles.append(title)
+            
+        try:
+            for first_p in container.find_all('div', class_ = 'threadlist_abs threadlist_abs_onlyline'): 
+                first_ps.append(first_p.text.strip()) 
+        except:
+            first_p = "no_first_p"
+            first_ps.append(first_p)
+            
+        try:
+            for author in container.find_all('span', class_ = 'frs-author-name-wrap'): 
+                authors.append(author.text.strip()) 
+        except:
+            author = "no_author"
+            authors.append(author)
+            
+        try:
+            for reply_lp in container.find_all('span', class_ = 'tb_icon_author_rely j_replyer'): 
+                reply_lps.append(reply_lp.text.strip()) 
+        except:
+            reply_lp = "no_reply_lp"
+            reply_lps.append(reply_lp) 
+            
+        try: 
+            for reply_q in container.find_all('span', class_ = 'threadlist_rep_num center_text'): 
+                reply_qs.append(reply_q.text.strip())
+        except: 
+            reply_q = "no_reply_q"
+            reply_qs.append(reply_q)
+        
+        try:
+            for data_floor in container:
+                data_floors.append(data_floorget('data-floor')) 
+        except:
+            data_floor = "no_data_floor"
+            data_floors.append(data_floor)
+            
+        try:
+            for found_time in container.find_all('span', class_ = 'pull-right is_show_create_time'): 
+                found_times.append(found_time.text.strip()) 
+        except:
+            found_time = "no_found_time"
+            found_times.append(found_time)
+            
+        try:
+            for ltime in container.find_all('span', class_ = 'threadlist_reply_date pull_right j_reply_data'): 
+                ltimes.append(ltime.text.strip()) 
+        except:
+            ltime = "no_ltime"
+            ltimes.append(ltime)
+            
+        try:
+            for field in container.find_all('a', class_ = 'j_th_tit'): 
+                fields.append(field.get('href').replace('/p/', '')) 
+        except:
+            field = "no_feild"
+            fields.append(feild)
+
+
+print(len(titles))
+print(len(first_ps))
+
+print(len(authors))
+print(len(reply_lps))
+
+print(len(reply_qs))
+print(len(data_floors))
+print(len(found_times))
+print(len(ltimes))
+print(len(fields))
+
+reply_lps.append('none')
+ltimes.append('none')
+data_10y = {
+    'titles': titles,
+    'first_ps': first_ps,
+    'authors': authors,
+    'reply_lps': reply_lps,
+    'reply_qs': reply_qs,
+    'data_floors': data_floors,
+    'found_times': found_times,
+    'ltimes': ltimes,
+    'fields': fields}
+pd_CityUnews_10y = pd.DataFrame.from_dict(data_10y)
+
+print(pd_CityUnews_10y.info())
+pd_CityUnews_10y.to_csv('Data_Tieba1.csv')
+
+
+import matplotlib.pyplot as plt
+import pandas as pd
+import numpy as np
+df = pd.read_csv("table2.csv")
+
+df[['year',
+           'number']].plot(kind='line',
+                                  x='year',
+                                  y='number',
+                                  title='Reply number in recent 7 years',
+                                  legend=False)
+plt.show()
+plt.savefig("LineChart1.jpg")
+
+df[['year',
+           'mean']].plot(kind='line',
+                                  x='year',
+                                  y='mean',
+                                  title="Mean of each post's reply number in recent 7 years",
+                                  legend=False)
+plt.show()
+plt.savefig("LineChart2.jpg")
