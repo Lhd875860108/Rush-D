@@ -66,3 +66,30 @@ if __name__ == '__main__':
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.25 Safari/537.36 Core/1.70.3676.400 QQBrowser/10.5.3738.400',
     }
     parse()
+
+#Visualization
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+get_ipython().run_line_magic('matplotlib', 'inline')
+
+import plotly
+from plotly.offline import download_plotlyjs, init_notebook_mode, plot, iplot
+import plotly.graph_objs as go
+from plotly import tools
+init_notebook_mode(connected=True)
+df = pd.DataFrame({'A':[23,22,14,37,65,209], 
+                   'B':[509,558,148,111,108,26]})
+trace_1 = go.Scatter(
+    x = df.index,
+    y = df['A'],
+    name = 'Signal A') # 和之前一样，我们创建了一条trace叫'Signal A'
+
+trace_2 = go.Scatter(
+    x = df.index,
+    y = df['B'],
+    name = 'Signal B') # 此处我们创建另一条trace，叫'Signal B'
+
+fig = go.Figure(data=[trace_1, trace_2]) # 我们将trace_1与trace_2一并放入画布
+
+plotly.offline.iplot(fig) # 绘制
