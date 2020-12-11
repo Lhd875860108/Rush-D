@@ -1,0 +1,68 @@
+import requests, time, openpyxl
+from lxml import etree
+from datetime import datetime, timedelta
+
+
+def parse():
+    data = []
+    for pn in range(1, 38):
+        pn = pn * 10
+        keyword = "家暴"
+        url = "https://www.baidu.com/s?tn=news&rtt=4&bsst=1&cl=2&wd=%s&medium=0&x_bfe_rqs=03E80&x_bfe_tjscore=0.000000&tngroupname=organic_news&newVideo=12&rsv_dl=news_b_pn&pn=%s" % (
+        keyword, pn)
+        html = requests.get(url, headers=headers).text
+        selector = etree.HTML(html)
+        divs = selector.xpath("//div[@id='content_left']/div[2]/div")
+        for div in divs:
+            title = "".join(div.xpath(".//h3//text()"))
+            source = div.xpath(".//div[@class='news-source']/span[1]/text()")[0]
+            create_time = div.xpath(".//div[@class='news-source']/span[2]/text()")[0]
+            # print(create_time)
+            # create_time = standardize_date(create_time)
+            print(title, source, create_time)
+            data.append([source,create_time, title])
+    workbook = openpyxl.Workbook()
+    sheet = workbook.active
+    for i, v in enumerate(data):
+        sheet.append(v)
+    workbook.save("baidu.xlsx")
+
+
+
+def standardize_date(created_at):
+    if isinstance(created_at, int):
+        return created_at
+    create_time = int(time.time())
+    if u"刚刚" in created_at:
+        create_time = int(datetime.now().timestamp())
+    elif u"分钟" in created_at:
+        minute = created_at[:created_at.find(u"分钟")]
+        minute = timedelta(minutes=int(minute))
+        create_time = int((datetime.now() - minute).timestamp())
+    elif u"小时" in created_at:
+        hour = created_at[:created_at.find(u"小时")]
+        hour = timedelta(hours=int(hour))
+        create_time = int((datetime.now() - hour).timestamp())
+    elif u"昨天" in created_at:
+        day = timedelta(days=1)
+        create_time = int((datetime.now() - day).timestamp())
+    elif created_at.count("-") == 1:
+        year = datetime.now().strftime("%Y")
+        created_at = year + "-" + created_at
+        create_time = int(time.mktime(time.strptime(created_at, "%Y-%m-%d")))
+    elif created_at.count("-") == 2:
+        create_time = int(time.mktime(time.strptime(created_at, "%Y-%m-%d")))
+    create_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(create_time))
+    return create_time
+
+
+
+if __name__ == '__main__':
+    headers = {
+        'Accept': '*/*',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Accept-Language': 'zh-CN,zh;q=0.9',
+        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.25 Safari/537.36 Core/1.70.3676.400 QQBrowser/10.5.3738.400',
+    }
+    parse()
