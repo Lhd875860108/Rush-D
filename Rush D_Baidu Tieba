@@ -5,11 +5,12 @@ from time import time
 from random import randint
 import pandas as pd 
 
-#text content
+#10 variables:text content
 titles = []
+#first paragragh text
 first_ps = []
-#
 authors = []
+#last reply person
 reply_lps = []
 #reply number
 reply_qs = []
@@ -23,6 +24,7 @@ ltimes = []
 fields = []
 #total 4 numbers in 10
 
+#loop
 intervals = [str(i*50) for i in range(0,75)] 
 
 for interval in intervals:
@@ -125,12 +127,14 @@ data_10y = {
     'found_times': found_times,
     'ltimes': ltimes,
     'fields': fields}
+
+#Export
 pd_CityUnews_10y = pd.DataFrame.from_dict(data_10y)
 
 print(pd_CityUnews_10y.info())
 pd_CityUnews_10y.to_csv('Data_Tieba1.csv')
 
-
+#Visualization
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
@@ -153,3 +157,54 @@ df[['year',
                                   legend=False)
 plt.show()
 plt.savefig("LineChart2.jpg")
+
+#Word Cloud
+import jieba.analyse
+import imageio
+import jieba.posseg as pseg
+def jieba_cut():
+    #停用词
+    fr = open('/Users/liuziwei/Downloads/语料（附停用词）/stopword.txt', 'r')
+    stop_word_list = fr.readlines()
+    new_stop_word_list = []
+    for stop_word in stop_word_list:
+        stop_word = stop_word.replace('\ufeef', '').strip()
+        new_stop_word_list.append(stop_word)
+    print(stop_word_list)  #输出停用词
+    #输出文书网站 词语出现的次数
+    fr_xyj=open('/Users/liuziwei/Desktop/文书网.txt','r',encoding='utf-8')
+    s=fr_xyj.read()
+    words=jieba.cut(s,cut_all=False)
+    word_dict={}
+    word_list=''
+    for word in words:
+        if (len(word) > 1 and not word in new_stop_word_list):
+            word_list = word_list + ' ' + word
+            if (word_dict.get(word)):
+                word_dict[word] = word_dict[word] + 1
+            else:
+                word_dict[word] = 1
+    fr.close()
+    ##print(word_list)
+    #print(word_dict) #输出文书网 词语出现的次数
+
+    #按次数进行排序
+    sort_words=sorted(word_dict.items(),key=lambda x:x[1],reverse=True)
+    print(sort_words[2:61])#输出前3-50的词
+
+    from wordcloud import WordCloud
+    color_mask =imageio.imread("/Users/liuziwei/Downloads/21.png")
+    wc = WordCloud(
+            background_color="white",  # 背景颜色
+            max_words=100,  # 显示最大词数
+            font_path="/Users/liuziwei/Library/Group Containers/UBF8T346G9.Office/FontCache/4/CloudFonts/STFangsong/32515377567.ttf",  # 使用字体
+            min_font_size=15,
+            max_font_size=50,
+            width=400,
+            height=860,
+            mask=color_mask) # 图幅宽度
+    i=str('why')
+    wc.generate(word_list)
+    wc.to_file(str(i)+".png")
+jieba_cut()
+
