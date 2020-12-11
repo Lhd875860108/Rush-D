@@ -1,0 +1,549 @@
+import hashlib
+import json
+import re
+import sys
+import time
+import os
+from random import randint
+from time import sleep
+import jsonpath
+import pandas as pd
+import requests
+import urllib3
+from lxml import etree
+
+# Scraping“对原告实施家庭暴力”Judgement List
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+def get_auth():
+    orderno = "ZF20201224437tA2yYC"
+    secret = "cc123135da8d430fbc6e451a567d1f82"
+
+    timestamp = str(int(time.time()))
+    string = "orderno=" + orderno + "," + "secret=" + secret + "," + "timestamp=" + timestamp
+
+    string = string.encode()
+
+    md5_string = hashlib.md5(string).hexdigest()
+    sign = md5_string.upper()
+    auth = "sign=" + sign + "&" + "orderno=" + orderno + "&" + "timestamp=" + timestamp
+
+    return auth
+
+ip = "forward.xdaili.cn"
+port = "80"
+
+ip_port = ip + ":" + port
+proxy = {"http": "http://" + ip_port, "https": "https://" + ip_port}
+headers = {
+    "Proxy-Authorization": get_auth(),
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.198 Safari/537.36',
+    "Cookie": "home_sessionId=true; UM_distinctid=175ed8d6fe00-066896c7d3e6cc-930346c-100200-175ed8d6fe13cd; subSiteCode=bj; cookie_allowed=true; reborn-userToken=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIxODY1MzY5MjQ5OCJ9.Mk8MWKoodlRz3S8kzjwj-1J7QBcRellVFRyUtHE9nN0; gr_user_id=706b207c-ba12-4f3b-8f07-aa3242e954db; CNZZDATA1278721950=822009178-1606007388-https%253A%252F%252Fwww.baidu.com%252F%7C1606976481"
+}
+
+intervals = [str(i * 20) for i in range(0, 2180)]
+if not os.path.exists("jiabao.csv"):
+    open("jiabao.csv", 'w', encoding='utf-8').write("id,title,courtname,date,courtopinion,text\n")
+for index, interval in enumerate(intervals):
+    url = 'https://www.itslaw.com/api/judgements?_timer=1606877491971&sortType=1&conditions=searchWord%2B%E5%AF%B9%E5%8E%9F%E5%91%8A%E5%AE%9E%E6%96%BD%E5%AE%B6%E5%BA%AD%E6%9A%B4%E5%8A%9B%2B1%2B%E5%AF%B9%E5%8E%9F%E5%91%8A%E5%AE%9E%E6%96%BD%E5%AE%B6%E5%BA%AD%E6%9A%B4%E5%8A%9B&startIndex=' + interval + '&countPerPage=20'
+    #data = requests.get(url, headers=headers, proxies=proxy, verify=False).json()
+    data = requests.get(url, headers=headers, verify=False).json()
+    print("获取数据成功")
+    #print(data)
+    judgements = data['data']['searchResult']['judgements']
+    save_data_list = []
+    for judgement in judgements:
+        id = judgement["id"]
+        title = judgement["title"]
+        courtname = judgement["courtName"]
+        date = judgement["judgementDate"]
+        courtopinion = judgement["courtOpinion"]
+        text = judgement["hitResult"]["text"]
+
+        save_data = f"{id},{title},{courtname},{date},{courtopinion},{text}\n"
+        save_data_list.append(save_data)
+    with open('jtbl.csv', 'a+', encoding='utf-8') as f:
+        for i in save_data_list:
+            f.write(i)
+    
+    print("解析成功")
+    print("当前进度：%s/%s  %s" % (index, len(intervals), round(index / len(intervals), 2)))
+
+#Scraping“对原告实施家暴”Judgements list
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+def get_auth():
+    orderno = "ZF20201224437tA2yYC"
+    secret = "cc123135da8d430fbc6e451a567d1f82"
+
+    timestamp = str(int(time.time()))
+    string = "orderno=" + orderno + "," + "secret=" + secret + "," + "timestamp=" + timestamp
+
+    string = string.encode()
+
+    md5_string = hashlib.md5(string).hexdigest()
+    sign = md5_string.upper()
+    auth = "sign=" + sign + "&" + "orderno=" + orderno + "&" + "timestamp=" + timestamp
+
+    return auth
+
+ip = "forward.xdaili.cn"
+port = "80"
+
+ip_port = ip + ":" + port
+proxy = {"http": "http://" + ip_port, "https": "https://" + ip_port}
+headers = {
+    "Proxy-Authorization": get_auth(),
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.198 Safari/537.36',
+    "Cookie": "home_sessionId=true; UM_distinctid=175ed8d6fe00-066896c7d3e6cc-930346c-100200-175ed8d6fe13cd; subSiteCode=bj; cookie_allowed=true; reborn-userToken=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIxODY1MzY5MjQ5OCJ9.Mk8MWKoodlRz3S8kzjwj-1J7QBcRellVFRyUtHE9nN0; gr_user_id=706b207c-ba12-4f3b-8f07-aa3242e954db; CNZZDATA1278721950=822009178-1606007388-https%253A%252F%252Fwww.baidu.com%252F%7C1606987281"
+}
+
+intervals = [str(i * 20) for i in range(0, 50)]
+for index, interval in enumerate(intervals):
+    url = 'https://www.itslaw.com/api/judgements?_timer=1606877491971&sortType=1&conditions=searchWord%2B%E5%AF%B9%E5%8E%9F%E5%91%8A%E5%AE%9E%E6%96%BD%E5%AE%B6%E5%BA%AD%E6%9A%B4%E5%8A%9B%2B1%2B%E5%AF%B9%E5%8E%9F%E5%91%8A%E5%AE%9E%E6%96%BD%E5%AE%B6%E5%BA%AD%E6%9A%B4%E5%8A%9B&startIndex=' + interval + '&countPerPage=20'
+    data = requests.get(url, headers=headers, proxies=proxy, verify=False).json()
+    #data = requests.get(url, headers=headers, verify=False).json()
+    print("获取数据成功")
+    print(data)
+    id = jsonpath.jsonpath(data, '$.data.searchResult.judgements..id')
+    title = jsonpath.jsonpath(data, '$.data.searchResult.judgements..title')
+    courtname = jsonpath.jsonpath(data, '$.data.searchResult.judgements..courtName')
+    date = jsonpath.jsonpath(data, '$.data.searchResult.judgements..judgementDate')
+    courtopinion = jsonpath.jsonpath(data, '$.data.searchResult.judgements..courtOpinion')
+    text = jsonpath.jsonpath(data, '$.data.searchResult.judgements..hitResult')
+    item_dict = {'id' : id,
+             'title' : title,
+             'courtname' : courtname,
+             'date' : date,
+             'courtopinion' : courtopinion,
+             'text' : text }
+    df = pd.DataFrame.from_dict(item_dict,orient ='index').transpose()
+    #print(df)
+    df.to_csv('jiabao.csv',mode='a',encoding = 'gbk')
+    
+    print("解析成功")
+    print("当前进度：%s/%s  %s" % (index, len(intervals), round(index / len(intervals), 2)))        
+
+
+# Scraping“原告诉称”
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+def get_auth():
+    orderno = "ZF20201224437tA2yYC"
+    secret = "cc123135da8d430fbc6e451a567d1f82"
+
+    timestamp = str(int(time.time()))
+    string = "orderno=" + orderno + "," + "secret=" + secret + "," + "timestamp=" + timestamp
+
+    string = string.encode()
+
+    md5_string = hashlib.md5(string).hexdigest()
+    sign = md5_string.upper()
+    auth = "sign=" + sign + "&" + "orderno=" + orderno + "&" + "timestamp=" + timestamp
+
+    return auth
+
+ip = "forward.xdaili.cn"
+port = "80"
+
+ip_port = ip + ":" + port
+proxy = {"http": "http://" + ip_port, "https": "https://" + ip_port}
+headers = {
+    "Proxy-Authorization": get_auth(),
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.198 Safari/537.36',
+    "Cookie": "home_sessionId=true; UM_distinctid=175ed8d6fe00-066896c7d3e6cc-930346c-100200-175ed8d6fe13cd; subSiteCode=bj; cookie_allowed=true; reborn-userToken=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIxODY1MzY5MjQ5OCJ9.Mk8MWKoodlRz3S8kzjwj-1J7QBcRellVFRyUtHE9nN0; gr_user_id=706b207c-ba12-4f3b-8f07-aa3242e954db; CNZZDATA1278721950=822009178-1606007388-https%253A%252F%252Fwww.baidu.com%252F%7C1606987281"
+}
+
+intervals = [str(i * 20) for i in range(0, 50)]
+for index, interval in enumerate(intervals):
+    url = 'https://www.itslaw.com/api/judgements?_timer=1606999392161&sortType=1&conditions=searchWord%2B%E5%AF%B9%E5%8E%9F%E5%91%8A%E5%AE%9E%E6%96%BD%E5%AE%B6%E6%9A%B4%2B1%2B%E5%AF%B9%E5%8E%9F%E5%91%8A%E5%AE%9E%E6%96%BD%E5%AE%B6%E6%9A%B4&startIndex=' + interval + '&countPerPage=20'
+    #data = requests.get(url, headers=headers, proxies=proxy, verify=False).json()
+    data = requests.get(url, headers=headers, verify=False).json()
+    print("获取数据成功")
+    #print(data)
+    id = jsonpath.jsonpath(data, '$.data.searchResult.judgements..id')
+    title = jsonpath.jsonpath(data, '$.data.searchResult.judgements..title')
+    courtname = jsonpath.jsonpath(data, '$.data.searchResult.judgements..courtName')
+    date = jsonpath.jsonpath(data, '$.data.searchResult.judgements..judgementDate')
+    courtopinion = jsonpath.jsonpath(data, '$.data.searchResult.judgements..courtOpinion')
+    text = jsonpath.jsonpath(data, '$.data.searchResult.judgements..hitResult')
+    item_dict = {'id' : id,
+             'title' : title,
+             'courtname' : courtname,
+             'date' : date,
+             'courtopinion' : courtopinion,
+             'text' : text }
+    df = pd.DataFrame.from_dict(item_dict,orient ='index').transpose()
+    #print(df)
+    df.to_csv('jiabao1.csv',mode='a',encoding = 'gbk')
+    
+    print("解析成功")
+    print("当前进度：%s/%s  %s" % (index, len(intervals), round(index / len(intervals), 2)))       
+
+
+import pandas as pd
+import numpy as np
+import hashlib
+import json
+import re
+import sys
+import time
+import os
+from random import randint
+from time import sleep
+import jsonpath
+import requests
+import urllib3
+from lxml import etree
+
+wenshu = pd.read_csv('all.csv', encoding = 'gbk')
+
+id = wenshu.id
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+def get_auth():
+    orderno = "ZF20201224437tA2yYC"
+    secret = "cc123135da8d430fbc6e451a567d1f82"
+
+    timestamp = str(int(time.time()))
+    string = "orderno=" + orderno + "," + "secret=" + secret + "," + "timestamp=" + timestamp
+
+    string = string.encode()
+
+    md5_string = hashlib.md5(string).hexdigest()
+    sign = md5_string.upper()
+    auth = "sign=" + sign + "&" + "orderno=" + orderno + "&" + "timestamp=" + timestamp
+
+    return auth
+
+
+#Clean data
+ip = "forward.xdaili.cn"
+port = "80"
+
+ip_port = ip + ":" + port
+proxy = {"http": "http://" + ip_port, "https": "https://" + ip_port}
+headers = {
+    "Proxy-Authorization": get_auth(),
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.198 Safari/537.36',
+    "Cookie": "home_sessionId=true; UM_distinctid=175ed8d6fe00-066896c7d3e6cc-930346c-100200-175ed8d6fe13cd; subSiteCode=bj; cookie_allowed=true; reborn-userToken=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIxODY1MzY5MjQ5OCJ9.Mk8MWKoodlRz3S8kzjwj-1J7QBcRellVFRyUtHE9nN0; gr_user_id=706b207c-ba12-4f3b-8f07-aa3242e954db; CNZZDATA1278721950=822009178-1606007388-https%253A%252F%252Fwww.baidu.com%252F%7C1606987281"
+}
+for j in range(0,1920):
+    url = 'https://www.itslaw.com/api/judgements/detail?_timer=1607225838616&judgementId=' + id[j]
+    #wenben = requests.get(url, headers=headers, proxies=proxy, verify=False).json()
+    wenben = requests.get(url, headers=headers, verify=False).json()
+    print("获取数据成功")
+    #print(wenben)
+    title = jsonpath.jsonpath(wenben, '$.data.fullJudgement..title')  
+    paragraphs = wenben['data']['fullJudgement']['paragraphs']
+    statement = paragraphs[2]['subParagraphs'][0]['text']
+
+    item_dict = {'title' : title,
+               'statement' : statement}
+    df = pd.DataFrame.from_dict(item_dict,orient ='index').transpose()
+   # print(df)
+    df.to_csv('statement.csv',mode='a',encoding = 'gbk')
+    print("解析成功")  
+
+#Scraping Judgement Result
+import pandas as pd
+import numpy as np
+
+statement = pd.read_csv('new.csv', encoding = 'gbk')
+statement.drop_duplicates(subset=['title','statement'], keep='first', inplace=False)
+
+import csv
+ 
+file_old = 'statement.csv'
+file_temp = 'final.csv'
+ 
+with open(file_old, 'r', newline='', encoding='gbk') as f_old, \
+    open(file_temp, 'w', newline='', encoding='gbk') as f_temp:
+    f_csv_old = csv.reader(f_old)
+    f_csv_temp = csv.writer(f_temp)
+    for i, rows in enumerate(f_csv_old):    # 保留header
+        if i == 0:
+            f_csv_temp.writerow(rows)
+            break
+    for rows in f_csv_old:
+        if rows[0] != "title":                  
+            f_csv_temp.writerow(rows)
+
+import csv
+ 
+file_old = 'jtbl.csv'
+file_temp = 'all.csv'
+ 
+with open(file_old, 'r', newline='', encoding='gbk') as f_old, \
+    open(file_temp, 'w', newline='', encoding='gbk') as f_temp:
+    f_csv_old = csv.reader(f_old)
+    f_csv_temp = csv.writer(f_temp)
+    for i, rows in enumerate(f_csv_old):    
+        if i == 0:
+            f_csv_temp.writerow(rows)
+            break
+    for rows in f_csv_old:
+        if rows[0] != "title":                  
+            f_csv_temp.writerow(rows)
+
+import pandas as pd
+import numpy as np
+import hashlib
+import json
+import re
+import sys
+import time
+import os
+from random import randint
+from time import sleep
+import jsonpath
+import requests
+import urllib3
+from lxml import etree
+import csv
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+def get_auth():
+    orderno = "ZF20201224437tA2yYC"
+    secret = "cc123135da8d430fbc6e451a567d1f82"
+
+    timestamp = str(int(time.time()))
+    string = "orderno=" + orderno + "," + "secret=" + secret + "," + "timestamp=" + timestamp
+
+    string = string.encode()
+
+    md5_string = hashlib.md5(string).hexdigest()
+    sign = md5_string.upper()
+    auth = "sign=" + sign + "&" + "orderno=" + orderno + "&" + "timestamp=" + timestamp
+
+    return auth
+
+ip = "forward.xdaili.cn"
+port = "80"
+
+ip_port = ip + ":" + port
+proxy = {"http": "http://" + ip_port, "https": "https://" + ip_port}
+headers = {
+    "Proxy-Authorization": get_auth(),
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.198 Safari/537.36',
+    "Cookie": "home_sessionId=true; UM_distinctid=175ed8d6fe00-066896c7d3e6cc-930346c-100200-175ed8d6fe13cd; subSiteCode=bj; cookie_allowed=true; reborn-userToken=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIxODY1MzY5MjQ5OCJ9.Mk8MWKoodlRz3S8kzjwj-1J7QBcRellVFRyUtHE9nN0; gr_user_id=706b207c-ba12-4f3b-8f07-aa3242e954db; CNZZDATA1278721950=822009178-1606007388-https%253A%252F%252Fwww.baidu.com%252F%7C1606987281"
+}
+wenshu = pd.read_csv('all.csv', encoding = 'gbk')
+id = wenshu.id
+for j in range(1768,1920):
+    url = 'https://www.itslaw.com/api/judgements/detail?_timer=1607225838616&judgementId=' + id[j]
+    r = requests.get(url, headers=headers, verify=False).text
+    print("获取数据成功")
+    jieguo = "不予支持"
+    if jieguo in r:
+        result = '失败'
+    else:
+        result = '成功'
+                    
+    item_dict = {'result' : result}           
+                
+    df = pd.DataFrame.from_dict(item_dict,orient ='index').transpose()
+    #print(df)
+    df.to_csv('result.csv',mode='a',encoding = 'gbk')
+    print("解析成功")  
+
+#Visualization to Pie Chart
+
+import csv
+ 
+file_old = 'result.csv'
+file_temp = 'jieguo.csv'
+
+with open(file_old, 'r', newline='', encoding='gbk') as f_old, \
+    open(file_temp, 'w', newline='', encoding='gbk') as f_temp:
+    f_csv_old = csv.reader(f_old)
+    f_csv_temp = csv.writer(f_temp)
+    for i, rows in enumerate(f_csv_old):    # 保留header
+        if i == 0:
+            f_csv_temp.writerow(rows)
+            break
+    for rows in f_csv_old:
+        if rows[0] != "result":                  
+            f_csv_temp.writerow(rows)
+
+result = pd.read_csv('all.csv', encoding = 'gbk')
+
+#Analysing Judgement Result
+len(result[result['result']=="成功"] )
+
+len(result[result['result']=="失败"] )
+
+import numpy as np  
+import matplotlib.mlab as mlab  
+import matplotlib.pyplot as plt  
+labels=['Success','Fail']
+X=[698,1222]  
+colors = '#FFC125','#473C8B'
+
+fig = plt.figure()
+plt.pie(X,labels=labels,autopct='%1.2f%%',colors=colors) 
+plt.title("Pie chart")
+  
+plt.show()  
+plt.savefig("PieChart.jpg")
+
+import pandas as pd
+import re
+
+def read_corpus(path):
+    df =pd.read_csv(path,encoding='gbk')
+    return df
+    
+#Analysing places of domestic violece law cases
+def extra_erea(courtname,keyword =['省','市','县','区']):
+    courtname =str(courtname)
+    find_text =[]
+    for word in keyword:
+        pattern ='^.{1,15}'+word
+        find_text =re.findall(pattern,courtname)
+        if len(find_text):
+            break
+    if len(find_text):
+        res =find_text[0]
+    else:
+        res=None
+    return res
+
+def get_region_dict(region_path):
+    region_df =pd.read_excel(region_path)
+    province_list =region_df['省'].tolist()
+    city_list =region_df['地级市'].tolist()
+    county_list =region_df['县区'].tolist()
+
+    region_dict =dict(zip(city_list,province_list))
+    region_dict.update(dict(zip(county_list,province_list)))
+    region_dict.update(dict(zip(province_list,province_list)))
+    return region_dict
+
+region_path ='省市县区_new.xlsx'  
+corpus_path ='all.csv'  
+
+region_dict =get_region_dict(region_path)
+df =read_corpus(corpus_path)
+df['region'] =df['courtname'].apply(extra_erea)
+print('没有关联到区域的数据',len(df[df['region'].isna()]))
+
+df['province'] =df['region'].apply(lambda x :region_dict.get(str(x).replace(' ','')))
+print('未匹配上的数据量:',len(df[(df['province'].isna())&(~df['region'].isna())]))
+
+province_df =df['province'].value_counts().reset_index()
+province_df.columns =['province','num']
+province_df['province'] =province_df['province'].apply(lambda x :x.replace('省','')) 
+province_df.to_csv('province_num.csv',index=False)
+
+df[df['region'].isna()]
+
+#Visualization to Map
+
+!pip install pyecharts==0.5.10
+!pip install echarts-countries-pypkg
+!pip install echarts-china-provinces-pypkg 
+!pip install echarts-china-cities-pypkg 
+!pip install echarts-china-counties-pypkg 
+!pip install echarts-china-misc-pypkg 
+
+import pyecharts
+from pyecharts import Map
+import pandas as pd
+
+province_df = pd.read_csv('province_num.csv',encoding='gbk')
+value =province_df['num']
+province =province_df['province']
+
+map_title ='Distribution of Chinese Domestic Violence Law Cases'  
+num = Map(map_title, width=1200, height=600)
+num.add("Number", province, value, 
+    maptype='china', 
+    is_label_show=True,
+    is_visualmap=True,
+visual_range=[0,100]) 
+num.render(path='map.html')
+
+Distribution of number of law cases in different city class
+
+def read_corpus(path):
+    df =pd.read_csv(path,encoding='gbk')
+    return df
+
+def extra_erea(courtname,keyword =['省','市','县','区']):
+    courtname =str(courtname)
+    find_text =[]
+    for word in keyword:
+        pattern ='^.{1,15}'+word
+        find_text =re.findall(pattern,courtname)
+        if len(find_text):
+            break
+    if len(find_text):
+        res =find_text[0]
+    else:
+        res=None
+    return res
+
+def get_region_dict(region_path):
+    region_df =pd.read_excel(region_path)
+    province_list =region_df['省'].tolist()
+    city_list =region_df['地级市'].tolist()
+    county_list =region_df['县区'].tolist()
+
+    region_dict =dict(zip(county_list,city_list))
+    region_dict.update(dict(zip(city_list,city_list)))
+    return region_dict
+
+region_path ='省市县区_new.xlsx'  
+corpus_path ='all.csv'  
+
+region_dict =get_region_dict(region_path)
+df =read_corpus(corpus_path)
+df['region'] =df['courtname'].apply(extra_erea)
+
+df['city'] =df['region'].apply(lambda x :region_dict.get(str(x).replace(' ','')))
+print('未匹配上的数据量:',len(df[(df['city'].isna())&(~df['region'].isna())]))
+
+city_df =df['city']
+city_df.to_csv('city.csv',encoding = 'gbk', index=False)
+
+def get_class_dict(class_path):
+    class_df =pd.read_excel('cityclass.csv')
+    city_list =class_df['city'].tolist()
+    class_list =class_df['class'].tolist()
+
+    class_dict =dict(zip(city_list,class_list))
+    return class_dict
+
+class_path ='cityclass.csv'  
+
+class_dict =get_class_dict(class_path)
+df =pd.read_excel('cityname.csv')
+df1 =pd.read_excel('cityclass.csv')
+df1['class'] =df['city'].apply(lambda x :class_dict.get(str(x).replace(' ','')))
+print('未匹配上的数据量:',len(df[(df1['class'].isna())&(~df['city'].isna())]))
+
+city_df =df1['class']#.value_counts().reset_index()
+#city_df.columns =['class','num']
+city_df.to_csv('class_num1.csv',index=False)
+
+import csv
+df = pd.read_excel('sum.csv')
+df_sum = df.groupby('class')['num'].sum() 
+df_sum.columns =['class','sum']
+df_sum.to_csv('class_num1.csv')
+
+#Visualization to Horizontal Bar Chart
+
+import matplotlib
+import matplotlib.pyplot as plt
+ 
+plt.figure()
+a = ["Fourth-tier city","Three-tier city","Fifth-tier city","Second-tier city","New first-tier city","First-tier city"]
+b = [521, 466, 318, 203, 158 ,88]
+plt.barh(a,b,color = "#FFC125")
+plt.grid(alpha = 0.4)
+plt.xlabel("case number",fontsize = 12)
+plt.ylabel("city class",fontsize = 12)
+plt.title("Distribution of case number in different city class",fontsize = 14)
+
+plt.show()
+
